@@ -1,32 +1,40 @@
 import configuration from '@feathersjs/configuration';
 import express from '@feathersjs/express';
-import feathers, {
-    HookContext as FeathersHookContext,
-} from '@feathersjs/feathers';
+import feathers from '@feathersjs/feathers';
 import socketio from '@feathersjs/socketio';
 import compress from 'compression';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import helmet from 'helmet';
 import path from 'path';
 import favicon from 'serve-favicon';
 import appHooks from './app.hooks';
 import authentication from './authentication';
+import bootstrap from './bootstrap';
 import channels from './channels';
 import { Application } from './declarations';
-import logger from './logger';
 import middleware from './middleware';
 import sequelize from './sequelize';
 import services from './services';
-import dotenv from 'dotenv';
+import logger from './util/logger';
 
-// Don't remove this comment. It's needed to format import lines nicely.
+// process.on('uncaughtException', (error) =>
+//     logger.error(
+//         `Uncaught Exception: ${error.name}\n${error.message}\n${(error.stack || '').replace(
+//             '\\n',
+//             '\n'
+//         )}`
+//     )
+// );
+// process.on('unhandledRejection', (error) => {
+//     if (error)
+//         logger.error(`Unhandled Rejection: \n${((error as any).stack || '').replace('\\n', '\n')}`);
+//     else logger.error('Unhandled Rejection');
+// });
 
 dotenv.config();
 
 const app: Application = express(feathers());
-export type HookContext<T = any> = {
-    app: Application;
-} & FeathersHookContext<T>;
 
 // Load app configuration
 app.configure(configuration());
@@ -57,6 +65,8 @@ app.configure(authentication);
 app.configure(services);
 // Set up event channels (see channels.ts)
 app.configure(channels);
+
+app.configure(bootstrap);
 
 // Configure a middleware for 404s and the error handler
 app.use(express.notFound());

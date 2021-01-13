@@ -1,66 +1,88 @@
 // See http://docs.sequelizejs.com/en/latest/docs/models-definition/
+// And https://sequelize.org/master/manual/typescript.html
 // for more of what you can do here.
 
-import { DataTypes, Model, Sequelize } from 'sequelize';
+import {
+    Association,
+    BelongsToManyAddAssociationMixin,
+    BelongsToManyGetAssociationsMixin,
+    BelongsToManyHasAssociationMixin,
+    BelongsToManyRemoveAssociationMixin,
+    BelongsToManySetAssociationsMixin,
+    DataTypes,
+} from 'sequelize';
 import { Application } from '../declarations';
 import appGet from '../util/appGet';
+import { objOrArrayObj } from '../util/array';
+import RoleModel from '../util/class/RoleModel';
+import Roles from '../util/enums/roles.enum';
+import { Profile } from './profiles.model';
+import users_profiles, { UsersProfiles } from './users_profiles.link';
 
-// import { Sequelize, DataTypes, Model } from 'sequelize';
-// import { Application } from '../declarations';
-// import { HookReturn } from 'sequelize/types/lib/hooks';
+interface UserAttributes {
+    id: number;
+    name: string;
+    password: string;
 
-// export default function (app: Application): typeof Model {
-//     const sequelizeClient: Sequelize = app.get('sequelizeClient');
-//     const users = sequelizeClient.define(
-//         'users',
-//         {
-//             email: {
-//                 type: DataTypes.STRING,
-//                 allowNull: false,
-//                 unique: true,
-//             },
-//             password: {
-//                 type: DataTypes.STRING,
-//                 allowNull: false,
-//             },
-//         },
-//         {
-//             hooks: {
-//                 beforeCount(options: any): HookReturn {
-//                     options.raw = true;
-//                 },
-//             },
-//         }
-//     );
+    email?: string;
+    roles?: string;
+}
 
-//     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-//     (users as any).associate = function (models: any): void {
-//         // Define associations here
-//         // See http://docs.sequelizejs.com/en/latest/docs/associations/
-//     };
+export interface UserCreationAttributes extends Omit<UserAttributes, 'id'> {}
 
-//     return users;
-// }
+export class User
+    extends RoleModel<UserAttributes, UserCreationAttributes>
+    implements UserAttributes {
+    id!: number;
+    name!: string;
+    password!: string;
 
-export class User extends Model {
-    public id!: number;
-    public name!: string;
-    public password!: string;
+    email?: string;
 
-    public email?: string;
+    getProfiles!: BelongsToManyGetAssociationsMixin<Profile>;
+    hasProfile!: BelongsToManyHasAssociationMixin<Profile, number>;
+    addProfile!: BelongsToManyAddAssociationMixin<Profile, number>;
+    removeProfile!: BelongsToManyRemoveAssociationMixin<Profile, number>;
+    setProfiles!: BelongsToManySetAssociationsMixin<Profile, number>;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    profiles?: Profile[];
+
+    static associations: {
+        profiles: Association<User, Profile>;
+    };
+
+    static associate(app: Application) {
+        users_profiles(app);
+        User.belongsToMany(Profile, { through: UsersProfiles, as: 'profiles' });
+        Profile.belongsToMany(User, { through: UsersProfiles, as: 'users' });
+    }
 }
 
 export default function (app: Application) {
     const ag = appGet(app);
     User.init(
         {
+            id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                autoIncrement: true,
+                primaryKey: true,
+            },
             name: {
-                type: DataTypes.STRING,
+                type: DataTypes.STRING(128),
                 allowNull: false,
                 unique: true,
+            },
+            password: {
+                type: DataTypes.STRING,
+                allowNull: false,
+            },
+            email: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
+            roles: {
+                type: DataTypes.STRING,
+                allowNull: true,
             },
         },
         ag.sequelizeConfig('users')
@@ -68,3 +90,37 @@ export default function (app: Application) {
 
     return User;
 }
+
+type UnsureRole = string | string[] | undefined;
+
+/**
+ * Given a User, it uses its custom roles and the linked Profiles' roles to compute
+ * a complete list of roles.
+ */
+export const computeUserRoles = (
+    user: {
+        roles: UnsureRole;
+        profiles?: { roles: UnsureRole } | { roles: UnsureRole }[];
+    }
+    // profilesOverride?: { roles: string | Roles[] | undefined }[]
+): Roles[] => {
+    const thisRoles = User.prototype.getRoles.call(user);
+    // if (profilesOverride) {
+    //     return Array.prototype.concat
+    //         .apply<string[], string[][], Roles[]>(
+    //             thisRoles,
+    //             profilesOverride.map((it) => {
+    //                 if (Array.isArray(it.roles)) return it.roles;
+    //                 return Profile.prototype.getRoles.call(it);
+    //             })
+    //         )
+    //         .filter((it, idx, arr) => arr.indexOf(it) === idx) // no duplicates
+    //         .sort();
+    // }
+    const profilesRoles =
+        objOrArrayObj(user.profiles)?.map((it) => Profile.prototype.getRoles.call(it)) || [];
+    return Array.prototype.concat
+        .apply<string[], string[][], Roles[]>(thisRoles, profilesRoles)
+        .filter((it, idx, arr) => arr.indexOf(it) === idx) // no duplicates
+        .sort();
+};

@@ -1,5 +1,4 @@
-import { Sequelize } from 'sequelize';
-import app from '../app';
+import { InitOptions, Sequelize } from 'sequelize';
 import { Application } from '../declarations';
 
 interface IMapping {
@@ -21,8 +20,9 @@ class Doers {
         this.app = app;
     }
 
-    sequelizeConfig(tableName: string) {
+    sequelizeConfig(tableName: string, options?: Partial<InitOptions>): InitOptions {
         return {
+            ...options,
             sequelize: appGet(this.app).sequelize,
             tableName,
         };
@@ -39,7 +39,7 @@ const appGet = (app: Application): IMappingTypes & IDoers =>
         {
             get(target, name: string) {
                 if (Object.keys(mapping).includes(name)) {
-                    return target.app.get(mapping[name as keyof IMapping]);
+                    return target.app.get(mapping[name as keyof IMapping]) as unknown;
                 } else if (Doers.prototype[name as keyof IDoers]) {
                     const doers = new Doers(target.app);
                     return doers[name as keyof IDoers].bind(doers);
