@@ -1,4 +1,5 @@
 import app from '../../app';
+import { UserServiceData } from '../../services/users/users.class';
 import Roles from '../../util/enums/roles.enum';
 import { asUser, internal } from '../__util__/authentication';
 import testDomain, { TestDomainCreator } from '../__util__/testDomainCreator.class';
@@ -15,27 +16,39 @@ describe('services.users', () => {
     describe('service testing', () => {
         let tdc: TestDomainCreator;
         let admin: any, moderator: any, user: any;
-        let profile1: any, profile2: any;
+        let profile1: any, profile2: any, profileAdmin: any;
 
         beforeAll(async () => {
             tdc = await testDomain(app);
 
             [admin, moderator, user] = await tdc.mkUsers(
                 {
+                    // Using array of strings
                     roles: allRoles,
                 },
                 {
-                    roles: [Roles.UserCreate, Roles.UserUpdate, Roles.UserDisplay].join('\n'),
+                    roles: [
+                        Roles.UserCreate,
+                        Roles.UserUpdate,
+                        Roles.UserDisplay,
+                        Roles.UserAssignRole,
+                        Roles.UserAssignProfile,
+                    ]
+                        // Using string with separator
+                        .join('\n'),
                 },
                 {}
             );
 
-            [profile1, profile2] = await tdc.mkProfiles(
+            [profile1, profile2, profileAdmin] = await tdc.mkProfiles(
                 {
                     roles: Roles.UserDisplay,
                 },
                 {
                     roles: Roles.UserUpdate,
+                },
+                {
+                    roles: allRoles.join(','),
                 }
             );
         });
@@ -46,7 +59,7 @@ describe('services.users', () => {
 
                 expect(list).toBeTruthy();
                 if (Array.isArray(list)) return fail(); // Paginated
-                expect(list.total).toBe(3);
+                expect(list.total).toBeGreaterThanOrEqual(3);
             });
 
             it('hides the list from the user without UserDisplay role', async () => {
@@ -73,6 +86,45 @@ describe('services.users', () => {
 
                 try {
                     await service.get(admin.id, asUser(user));
+                    fail();
+                } catch (e) {}
+            });
+
+            it('is able to login with cache (aka return from find)', async () => {
+                const show1 = await service.get(admin.id, {
+                    authenticated: true,
+                    provider: 'rest',
+                    user: {
+                        ...admin,
+                        roles: admin.roles.join('\n'),
+                    },
+                });
+
+                expect(show1).toBeTruthy();
+
+                const show2 = await service.get(admin.id, {
+                    authenticated: true,
+                    provider: 'rest',
+                    user: admin,
+                });
+
+                expect(show2).toBeTruthy();
+
+                try {
+                    const show3 = await service.get(admin.id, {
+                        authenticated: true,
+                        provider: 'rest',
+                        user: (null as any) as undefined,
+                    });
+                    fail();
+                } catch (e) {}
+
+                try {
+                    const show3 = await service.get(admin.id, {
+                        authenticated: true,
+                        provider: 'rest',
+                        user: {},
+                    });
                     fail();
                 } catch (e) {}
             });
@@ -154,6 +206,19 @@ describe('services.users', () => {
                 expect(tmpUser.roles).toStrictEqual(newRoles.sort());
             });
 
+            it("prevents user from giving roles he doesn't have", async () => {
+                await service.patch(
+                    tmpUser.id,
+                    {
+                        roles: allRoles,
+                    },
+                    asUser(moderator)
+                );
+                tmpUser = await service.get(tmpUser.id, internal);
+                expect(tmpUser).toBeTruthy();
+                expect(tmpUser.roles).toStrictEqual(moderator.roles);
+            });
+
             it('changes the roles if the user gives all invalid roles', async () => {
                 await service.patch(
                     tmpUser.id,
@@ -169,13 +234,13 @@ describe('services.users', () => {
 
             it('fails otherwise', async () => {
                 await service.patch(
-                    tmpUser.id,
+                    user.id,
                     {
                         roles: newRoles,
                     },
-                    asUser(moderator)
+                    asUser(user)
                 );
-                tmpUser = await service.get(tmpUser.id, internal);
+                tmpUser = await service.get(user.id, internal);
                 expect(tmpUser).toBeTruthy();
                 expect(tmpUser.roles).toStrictEqual([]);
             });
@@ -236,6 +301,80 @@ describe('services.users', () => {
                 expect(tmpUser).toBeTruthy();
                 expect(tmpUser.roles).toStrictEqual([Roles.UserDisplay]);
                 expect(tmpUser.profiles.map((it: any) => it.id as number)).toStrictEqual([profile1.id]);
+            });
+
+            it('prevents the user from giving profiles with more roles than he has', async () => {
+                await service.patch(
+                    tmpUser.id,
+                    {
+                        profiles: [profile1.id],
+                    },
+                    asUser(moderator)
+                );
+                tmpUser = await service.get(tmpUser.id, internal);
+                expect(tmpUser).toBeTruthy();
+                expect(tmpUser.roles).toStrictEqual([Roles.UserDisplay]);
+                expect(tmpUser.profiles.map((it: { id: any }) => it.id)).toStrictEqual([profile1.id]);
+
+                await service.patch(
+                    tmpUser.id,
+                    {
+                        profiles: [profile1.id, profile2.id],
+                    },
+                    asUser(moderator)
+                );
+                tmpUser = await service.get(tmpUser.id, internal);
+                expect(tmpUser).toBeTruthy();
+                expect(tmpUser.roles).toStrictEqual([Roles.UserDisplay, Roles.UserUpdate]);
+                expect(tmpUser.profiles.map((it: { id: any }) => it.id)).toStrictEqual([
+                    profile1.id,
+                    profile2.id,
+                ]);
+
+                await service.patch(
+                    tmpUser.id,
+                    {
+                        profiles: [profileAdmin.id],
+                    },
+                    asUser(moderator)
+                );
+                tmpUser = await service.get(tmpUser.id, internal);
+                expect(tmpUser).toBeTruthy();
+                expect(tmpUser.roles).toStrictEqual([]);
+                expect(tmpUser.profiles.map((it: { id: any }) => it.id)).toStrictEqual([]);
+
+                await service.patch(
+                    tmpUser.id,
+                    {
+                        profiles: [profile1.id, profile2.id, profileAdmin.id],
+                    },
+                    asUser(moderator)
+                );
+                tmpUser = await service.get(tmpUser.id, internal);
+                expect(tmpUser).toBeTruthy();
+                expect(tmpUser.roles).toStrictEqual([Roles.UserDisplay, Roles.UserUpdate]);
+                expect(tmpUser.profiles.map((it: { id: any }) => it.id)).toStrictEqual([
+                    profile1.id,
+                    profile2.id,
+                ]);
+            });
+
+            it('can do anything as internal', async () => {
+                await service.patch(
+                    tmpUser.id,
+                    {
+                        profiles: [profile1.id, profile2.id, profileAdmin.id].join(','),
+                    },
+                    internal
+                );
+                tmpUser = await service.get(tmpUser.id, internal);
+                expect(tmpUser).toBeTruthy();
+                expect(tmpUser.roles).toStrictEqual(allRoles.sort());
+                expect(tmpUser.profiles.map((it: { id: any }) => it.id)).toStrictEqual([
+                    profile1.id,
+                    profile2.id,
+                    profileAdmin.id,
+                ]);
             });
         });
     });

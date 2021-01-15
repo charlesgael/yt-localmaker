@@ -10,7 +10,7 @@ export default abstract class RoleModel<
 
     roles?: string;
 
-    getRoles(this: { roles: string | string[] | undefined }): Roles[] {
+    getRoles(this: { roles?: string | string[] | null }): Roles[] {
         const roles = (typeof this.roles === 'string'
             ? this.roles.split(RoleModel.ROLES_SEPARATOR)
             : this.roles

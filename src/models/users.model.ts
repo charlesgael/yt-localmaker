@@ -30,9 +30,7 @@ interface UserAttributes {
 
 export interface UserCreationAttributes extends Omit<UserAttributes, 'id'> {}
 
-export class User
-    extends RoleModel<UserAttributes, UserCreationAttributes>
-    implements UserAttributes {
+export class User extends RoleModel<UserAttributes, UserCreationAttributes> implements UserAttributes {
     id!: number;
     name!: string;
     password!: string;

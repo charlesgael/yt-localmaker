@@ -982,6 +982,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/lodash@^4.14.167":
+  version "4.14.167"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.167.tgz#ce7d78553e3c886d4ea643c37ec7edc20f16765e"
+  integrity sha512-w7tQPjARrvdeBkX/Rwg95S592JwxqOjmms3zWQ0XZgSyxSLdzWaYH3vErBhdVS/lRBX7F8aBYcYJYTr5TMGOzw==
+
 "@types/mime@*":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@types/mime/-/mime-2.0.3.tgz#c893b73721db73699943bfc3653b1deb7faa4a3a"
@@ -3066,10 +3071,10 @@ fb-watchman@^2.0.0:
   dependencies:
     bser "2.1.1"
 
-feathers-auth-roles-hooks@^0.0.5:
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/feathers-auth-roles-hooks/-/feathers-auth-roles-hooks-0.0.5.tgz#3a44188519133cfc4601c6916c8f1838d8abc3a3"
-  integrity sha512-0JhXyQn+H1d5yj0RG/mZmIHrhdP/3YJ7dxaMvhpCZSBbnaWf/wXJlbFdQyK88c6Bi+VCxW+OY6tswzC6KVqfxg==
+feathers-auth-roles-hooks@^0.0.8:
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/feathers-auth-roles-hooks/-/feathers-auth-roles-hooks-0.0.8.tgz#2639c1bd16735352773d7abc9579fb168d8276b9"
+  integrity sha512-2hCo+ZHm1mFMMJy6BlLmomRxgsl8TL6BzjWLMwzAFrFzKwWFk2fEZUGb9v2H63v+Zf9QzrxBza3xT/5NUSwRDw==
   dependencies:
     "@feathersjs/errors" "^4.5.11"
 

@@ -1,5 +1,5 @@
 import { Application } from '../../declarations';
-import { setupRelations } from '../../sequelize';
+import { setupRelations } from '../../app/sequelize';
 import appGet from '../../util/appGet';
 
 export const initSequelize = async (app: Application) => {

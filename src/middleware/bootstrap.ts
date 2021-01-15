@@ -1,9 +1,12 @@
-import { Application } from './declarations';
-import { Profile } from './models/profiles.model';
-import Roles from './util/enums/roles.enum';
-import logger from './util/logger';
+import { Application } from '../declarations';
+import { Profile } from '../models/profiles.model';
+import { UserServiceData } from '../services/users/users.class';
+import Roles from '../util/enums/roles.enum';
+import logger from '../util/logger';
 
 async function execute(app: Application): Promise<void> {
+    if (process.env.NODE_ENV === 'production') return;
+
     const adminProfile = (await app.services.profiles.create(
         {
             name: 'admin',
@@ -14,14 +17,14 @@ async function execute(app: Application): Promise<void> {
     logger.info('Created profile', adminProfile);
 
     // try {
-    const admin = await app.services.users.create(
+    const admin = (await app.services.users.create(
         {
             name: 'admin',
             password: 'admin',
             profiles: [adminProfile.id],
         },
         { authenticated: true }
-    );
+    )) as UserServiceData;
     logger.info('Created admin', admin);
 
     //     logger.info('admin', admin);

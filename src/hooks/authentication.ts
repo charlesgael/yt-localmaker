@@ -3,17 +3,23 @@ import { auth } from 'feathers-auth-roles-hooks';
 import { setField } from 'feathers-authentication-hooks';
 import { HookContext } from '../declarations';
 import { computeUserRoles } from '../models/users.model';
+import logger from '../util/logger';
 
 export const authentication = auth(
     {
-        rolesGetter: async (context: HookContext, userId) => {
-            const cacheUser = context.params.user;
+        rolesGetter: async (context) => {
+            const userObj = context.params.user;
+            if (!userObj.id) {
+                logger.error('No user decoded from token');
+                throw new NotAuthenticated(new Error('No user decoded from token'));
+            }
+
             if (
-                cacheUser?.roles !== undefined &&
-                (typeof cacheUser.roles === 'string' || Array.isArray(cacheUser.roles))
+                userObj.roles !== undefined &&
+                (typeof userObj.roles === 'string' || Array.isArray(userObj.roles))
             ) {
                 // cache is present
-                const roles = computeUserRoles(cacheUser as { roles: string | string[] });
+                const roles = computeUserRoles(userObj as { roles: string | string[] });
                 return roles;
             }
 
@@ -21,7 +27,7 @@ export const authentication = auth(
                 const freshUser = await context.app.services.users.find({
                     query: {
                         $limit: 1,
-                        id: userId,
+                        id: userObj.id,
                     },
                     authenticated: true,
                     paginate: false,
@@ -33,7 +39,7 @@ export const authentication = auth(
                 }
             } catch (e) {}
 
-            throw new NotAuthenticated(new Error(`No user for id #${userId}`));
+            throw new NotAuthenticated(new Error(`No user for id #${userObj.id}`));
         },
     },
     'jwt'

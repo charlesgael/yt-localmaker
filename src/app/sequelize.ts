@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
-import { Application } from './declarations';
-import appGet from './util/appGet';
+import { Application } from '../declarations';
+import appGet from '../util/appGet';
 
 const databaseConfig = ():
     | { dialect: 'sqlite'; storage: string }
@@ -26,17 +26,6 @@ const databaseConfig = ():
         password: process.env.DB_PASS,
     };
 };
-
-function containsAll<T, E>(
-    arr: T[] | ((value: E, index: number, array: E[]) => T[]),
-    target: T[] | ((value: E, index: number, array: E[]) => T[])
-) {
-    return (value: E, index: number, array: E[]) => {
-        const a1 = arr instanceof Array ? arr : arr(value, index, array);
-        const a2 = target instanceof Array ? target : target(value, index, array);
-        return a2.every((v) => a1.includes(v));
-    };
-}
 
 export function setupRelations(app: Application) {
     const models = appGet(app).sequelize.models;

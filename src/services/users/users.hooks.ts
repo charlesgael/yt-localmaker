@@ -1,12 +1,15 @@
 import { hooks as localHooks } from '@feathersjs/authentication-local';
 import { HooksObject } from '@feathersjs/feathers';
 import { hasRole, reqRole } from 'feathers-auth-roles-hooks';
-import { alterItems, iffElse, unless } from 'feathers-hooks-common';
+import { alterItems, discard, iff, iffElse, isProvider, unless } from 'feathers-hooks-common';
+import _ from 'lodash';
+import { HookContext } from '../../declarations';
 import { authentication, withCurrentUser } from '../../hooks/authentication';
 import { include } from '../../hooks/sequelize';
 import { Profile } from '../../models/profiles.model';
 import { computeUserRoles, User } from '../../models/users.model';
 import Roles, { hooks as RolesHooks } from '../../util/enums/roles.enum';
+import { ProfileServiceData } from '../profiles/profiles.class';
 
 // Don't remove this comment. It's needed to format import lines nicely.
 
@@ -15,19 +18,50 @@ const { hashPassword, protect } = localHooks;
 /** Will prepare roles in request to be valid string with correct separator */
 const validateRoles = iffElse(
     hasRole(Roles.UserAssignRole),
-    alterItems((data) => {
-        data.roles = RolesHooks.validateRoleList(data.roles);
+    alterItems((data, context) => {
+        const value: string | string[] | null | undefined = data.roles;
+        data.roles = RolesHooks.validateRoleList(
+            value,
+            context.params.user !== undefined ? context.params.roles || [] : undefined
+        );
     }),
-    alterItems((data) => {
-        delete data.roles;
-    })
+    discard('roles')
 );
 
-const validateProfiles = unless(
+const validateProfiles = iffElse(
     hasRole(Roles.UserAssignProfile),
-    alterItems((data) => {
-        delete data.profiles;
-    })
+    unless(
+        isProvider('server'),
+        alterItems(async (data, context: HookContext) => {
+            const value: string | number[] | null | undefined = data.profiles;
+            if (value !== undefined && value !== null) {
+                const ids = typeof value === 'string' ? value.split(',').map((it: string) => +it) : value;
+                const profiles = (await context.app.services.profiles.find({
+                    query: {
+                        id: {
+                            $in: ids,
+                        },
+                    },
+                    paginate: false,
+                    authenticated: true,
+                })) as ProfileServiceData[];
+
+                data.profiles = profiles
+                    // Remove profiles having more roles than us
+                    .filter(
+                        (profile) =>
+                            _.difference(
+                                // Profile role
+                                Profile.prototype.getRoles.call(profile),
+                                // - Our roles
+                                context.params.roles || []
+                            ).length === 0
+                    )
+                    .map((profile) => profile.id);
+            }
+        })
+    ),
+    discard('profiles')
 );
 
 const associations = include('profiles');
@@ -50,6 +84,7 @@ export default <HooksObject>{
             // Validate role requiring parts
             validateRoles,
             validateProfiles,
+            discard('id'),
         ],
         update: [
             hashPassword('password'),
@@ -58,6 +93,7 @@ export default <HooksObject>{
             // Validate role requiring parts
             validateRoles,
             validateProfiles,
+            discard('id'),
         ],
         patch: [
             hashPassword('password'),
@@ -66,6 +102,7 @@ export default <HooksObject>{
             // Validate role requiring parts
             validateRoles,
             validateProfiles,
+            discard('id'),
         ],
         remove: [
             // Prevent from deleting other

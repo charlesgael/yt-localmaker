@@ -10,27 +10,12 @@ import path from 'path';
 import favicon from 'serve-favicon';
 import appHooks from './app.hooks';
 import authentication from './authentication';
-import bootstrap from './bootstrap';
+import bootstrap from '../middleware/bootstrap';
 import channels from './channels';
-import { Application } from './declarations';
-import middleware from './middleware';
+import { Application } from '../declarations';
 import sequelize from './sequelize';
-import services from './services';
-import logger from './util/logger';
-
-// process.on('uncaughtException', (error) =>
-//     logger.error(
-//         `Uncaught Exception: ${error.name}\n${error.message}\n${(error.stack || '').replace(
-//             '\\n',
-//             '\n'
-//         )}`
-//     )
-// );
-// process.on('unhandledRejection', (error) => {
-//     if (error)
-//         logger.error(`Unhandled Rejection: \n${((error as any).stack || '').replace('\\n', '\n')}`);
-//     else logger.error('Unhandled Rejection');
-// });
+import services from '../services';
+import logger from '../util/logger';
 
 dotenv.config();
 
@@ -59,7 +44,6 @@ app.configure(socketio());
 app.configure(sequelize);
 
 // Configure other middleware (see `middleware/index.ts`)
-app.configure(middleware);
 app.configure(authentication);
 // Set up our services (see `services/index.ts`)
 app.configure(services);

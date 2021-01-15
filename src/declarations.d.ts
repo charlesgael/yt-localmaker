@@ -1,23 +1,23 @@
 import { AuthenticationService } from '@feathersjs/authentication/lib';
+import { Application as ExpressFeathers } from '@feathersjs/express';
 import {
     Application as FApplication,
     HookContext as FHookContext,
+    Params,
     ServiceAddons as FServiceAddons,
 } from '@feathersjs/feathers';
-import { Application as ExpressFeathers } from '@feathersjs/express';
-import { Profile } from './models/profiles.model';
-import { User } from './models/users.model';
 import { Me } from './services/me/me.class';
-import { Profiles } from './services/profiles/profiles.class';
-import { Users } from './services/users/users.class';
+import { Profiles, ProfileServiceData } from './services/profiles/profiles.class';
+import { Users, UserServiceData } from './services/users/users.class';
+import Roles from './util/enums/roles.enum';
 
 interface ServiceAddons<T = any> extends FServiceAddons<T> {}
 
 // A mapping of service names to types. Will be extended in service files.
 interface ServiceTypes {
     authentication: AuthenticationService & ServiceAddons<any>;
-    users: Users & ServiceAddons<User>;
-    profiles: Profiles & ServiceAddons<Profile>;
+    users: Users & ServiceAddons<UserServiceData>;
+    profiles: Profiles & ServiceAddons<ProfileServiceData>;
     me: Me & ServiceAddons<any>;
 }
 // The application instance type that will be used everywhere else
@@ -29,4 +29,7 @@ interface MyApplication extends FApplication {
 
 interface HookContext<T = any> extends FHookContext<T> {
     readonly app: MyApplication;
+    params: Params & {
+        roles?: Roles[];
+    };
 }

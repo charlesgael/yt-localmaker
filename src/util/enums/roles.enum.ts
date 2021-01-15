@@ -14,15 +14,23 @@ enum Roles {
 /** Reads validates and formats roles */
 function validateRoleList(
     maybeRoles: string | string[] | null | undefined,
+    definerRoles?: string[],
     separator = /[,\|.-;:_\n]/
 ): string | null | undefined {
     if (maybeRoles === null || maybeRoles === undefined) return maybeRoles;
 
     const rolesValues = Object.values(Roles);
-    const validRoles = (typeof maybeRoles === 'string'
-        ? maybeRoles.split(separator)
-        : maybeRoles
-    ).filter((it) => rolesValues.includes(it as Roles)) as Roles[];
+    const validRoles =
+        // If roles is a string, we separate it to convert it to an array of roles
+        (typeof maybeRoles === 'string' ? maybeRoles.split(separator) : maybeRoles)
+            // Then we remove roles that doesn't exist or that definer doesn't have
+            .filter(
+                (it) =>
+                    // The role exists
+                    rolesValues.includes(it as Roles) &&
+                    // Definer has the role if any
+                    (!definerRoles || definerRoles.includes(it))
+            ) as Roles[];
     if (validRoles.length) return validRoles.sort().join('\n');
     return null;
 }

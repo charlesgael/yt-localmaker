@@ -1,19 +1,17 @@
 import { GeneralError } from '@feathersjs/errors';
+
+import _ from 'lodash';
 import { Hook } from '@feathersjs/feathers';
 import { hooks as sequelizeHooks } from 'feathers-sequelize';
 
 const { dehydrate } = sequelizeHooks;
 
-const ensureParam: Hook = (context) => {
-    if (!context.params.sequelize) context.params.sequelize = {};
-};
-
 export const include = (...entries: any[]): Hook => (context) => {
     if (context.type === 'before') {
-        ensureParam(context);
-        // context.params.sequelize.nest = true;
-        context.params.sequelize.raw = false;
-        context.params.sequelize.include = entries;
+        _.set(context.params, 'sequelize', {
+            raw: false,
+            include: entries,
+        });
     } else if (context.type === 'after') {
         dehydrate().call(context.service, context);
     } else {

@@ -10,11 +10,21 @@
         "sourceType": "module",
         "project": "./tsconfig.eslint.json"
     },
-    "plugins": ["@typescript-eslint"],
-    "extends": ["plugin:@typescript-eslint/recommended"],
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "extends": [
+        "plugin:@typescript-eslint/recommended"
+    ],
     "rules": {
-        "indent": ["error", 4],
-        "linebreak-style": ["error", "unix"],
+        "indent": [
+            "error",
+            4
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
         "quotes": [
             "error",
             "single",
@@ -22,11 +32,26 @@
                 "avoidEscape": true
             }
         ],
-        "semi": ["error", "always"],
+        "semi": [
+            "error",
+            "always"
+        ],
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/no-empty-interface": "off",
         "@typescript-eslint/explicit-module-boundary-types": "off",
         "@typescript-eslint/no-unsafe-return": "error",
-        "@typescript-eslint/ban-types": 1
+        "@typescript-eslint/ban-types": "warn",
+        "@typescript-eslint/prefer-readonly": [
+            "warn",
+            {
+                "onlyInlineLambdas": null
+            }
+        ],
+        "@typescript-eslint/prefer-string-starts-ends-with": [
+            "error"
+        ],
+        "@typescript-eslint/prefer-regexp-exec": [
+            "error"
+        ]
     }
 }
