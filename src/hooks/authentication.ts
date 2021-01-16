@@ -4,15 +4,13 @@ import { setField } from 'feathers-authentication-hooks';
 import { HookContext } from '../declarations';
 import { computeUserRoles } from '../models/users.model';
 import { Users } from '../services/users/users.class';
-import logger from '../util/logger';
 
 export const authentication = auth(
     {
         rolesGetter: async (context) => {
             const userObj = context.params.user;
             if (!userObj.id) {
-                logger.error('No user decoded from token');
-                throw new NotAuthenticated(new Error('No user decoded from token'));
+                throw new NotAuthenticated(new Error('No user decoded from token. (h.authentication)'));
             }
 
             if (
@@ -41,7 +39,7 @@ export const authentication = auth(
                 }
             } catch (e) {}
 
-            throw new NotAuthenticated(new Error(`No user for id #${userObj.id}`));
+            throw new NotAuthenticated(new Error(`No user for id #${userObj.id}. (h.authentication)`));
         },
     },
     'jwt'

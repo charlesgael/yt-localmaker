@@ -7,7 +7,7 @@ import {
     Service,
     ServiceAddons as FServiceAddons,
 } from '@feathersjs/feathers';
-import { Association, FindOrCreateOptions, IncludeOptions, Model, QueryOptions } from 'sequelize';
+import { Association, FindOrCreateOptions, IncludeOptions, Model } from 'sequelize';
 import { Me } from './services/me/me.class';
 import { Profiles } from './services/profiles/profiles.class';
 import { Users } from './services/users/users.class';

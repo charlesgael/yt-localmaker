@@ -57,7 +57,7 @@ export default function (app: Application): void {
         const result = oldSetup.apply(this, args);
 
         // Set up data relationships
-        const models = setupRelations(app);
+        setupRelations(app);
 
         // Sync to the database
         app.set(

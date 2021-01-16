@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/ban-types */
-
-import * as R from 'remeda';
-
 import { Params } from '@feathersjs/feathers';
+import { omit } from 'remeda';
 import logger from '../logger';
 
 type Hook<T> = <V>(value: V, result: T, params: Params) => V;
@@ -19,8 +16,10 @@ interface ReactorHook<T> {
     [param: string]: PropHook<T>;
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 type Constructor<T = {}> = new (...args: any[]) => T;
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 export default function DataReactorMixin<T extends {} = {}>() {
     return function <TBase extends Constructor>(Base: TBase) {
         abstract class Reactor extends Base {
@@ -37,9 +36,14 @@ export default function DataReactorMixin<T extends {} = {}>() {
                     const val = self[key];
                     const match = filterReg.exec(key);
                     if (match && typeof val === 'function') {
-                        const { groups: { type, name } = {} } = match;
+                        const {
+                            groups: { type, name } = {},
+                        }: {
+                            groups?: { type?: 'Create' | 'Update' | 'Patch' | 'Data'; name?: string };
+                        } = match;
 
                         if (type && name) {
+                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                             if (!this.reactors[name.toLowerCase()])
                                 this.reactors[name.toLowerCase()] = {
                                     keepProperty: !!self[`keepData${name}`],
@@ -71,11 +75,12 @@ export default function DataReactorMixin<T extends {} = {}>() {
             private _holdData(data: Partial<T>, method: 'create' | 'patch'): Partial<T>;
             private _holdData(data: T, method: 'update'): T;
             private _holdData(data: T | Partial<T>, method: 'create' | 'update' | 'patch'): T | Partial<T> {
-                return R.omit(
+                return omit(
                     data,
                     Object.keys(this.reactors).filter(
                         (key) =>
                             // At least one reactor (non specific)
+                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                             this.reactors[key] &&
                             // There is no order to keep the property
                             !this.reactors[key].keepProperty &&
@@ -135,6 +140,7 @@ export default function DataReactorMixin<T extends {} = {}>() {
                         // Has a reactor for this method
                         .filter(
                             (key) =>
+                                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                                 this.reactors[key] && (this.reactors[key].all || this.reactors[key][method])
                         )
                         // Get corresponding tuple key / reactor / value

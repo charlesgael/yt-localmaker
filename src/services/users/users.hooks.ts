@@ -2,10 +2,11 @@ import { hooks as localHooks } from '@feathersjs/authentication-local';
 import { Forbidden } from '@feathersjs/errors';
 import { HooksObject } from '@feathersjs/feathers';
 import { hasRole, reqRole } from 'feathers-auth-roles-hooks';
-import { alterItems, discard, iffElse, isProvider, preventChanges, unless } from 'feathers-hooks-common';
-import * as R from 'remeda';
+import { alterItems, discard, iffElse, isProvider, unless } from 'feathers-hooks-common';
+import { flatten, map, pipe } from 'remeda';
 import { Hook, HookContext } from '../../declarations';
 import { authentication, withCurrentUser } from '../../hooks/authentication';
+import { preventData } from '../../hooks/preventData';
 import { include } from '../../hooks/sequelize';
 import { Profile } from '../../models/profiles.model';
 import { computeUserRoles } from '../../models/users.model';
@@ -19,13 +20,15 @@ const { hashPassword, protect } = localHooks;
 
 const protectStrongerUser: Hook = async (context) => {
     if (context.params.provider && context.id && context.id !== context.params.user?.id) {
-        const modifyeeRoles = ((await context.app.services.users.get(context.id)) as Users.Result).roles;
+        const modifyeeRoles = ((await context.app.services.users.get(context.id, {
+            authenticated: true,
+        })) as Users.Result).roles;
         const editorRoles = context.params.roles || [];
 
         try {
-            rolesUtil.rolesConsistency(modifyeeRoles || [], editorRoles);
+            rolesUtil.rolesConsistency(modifyeeRoles, editorRoles);
         } catch (e) {
-            throw new Forbidden(new Error('Cannot edit user with more roles than you.'));
+            throw new Forbidden(new Error('Cannot edit user with more roles than you. (s.users)'));
         }
     }
 };
@@ -52,17 +55,17 @@ const validateProfiles = iffElse(
                 })) as Profiles.Result[];
 
                 rolesUtil.rolesConsistency(
-                    R.pipe(
+                    pipe(
                         profiles,
-                        R.map((it) => it.roles || []),
-                        R.flatten()
+                        map((it) => it.roles),
+                        flatten()
                     ),
                     context.params.roles || []
                 );
             }
         })
     ),
-    preventChanges(true, 'profiles')
+    preventData(true, 'profiles')
 );
 
 const associations = include('profiles');

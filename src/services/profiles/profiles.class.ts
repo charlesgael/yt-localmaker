@@ -24,7 +24,7 @@ export namespace Profiles {
         extends ReplaceMulti<
             Data,
             {
-                roles?: Roles[];
+                roles: Roles[];
             }
         > {}
 }

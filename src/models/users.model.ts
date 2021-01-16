@@ -1,5 +1,4 @@
-import * as R from 'remeda';
-
+import { concat, flatten, map, pipe, uniq } from 'remeda';
 // See http://docs.sequelizejs.com/en/latest/docs/models-definition/
 // And https://sequelize.org/master/manual/typescript.html
 // for more of what you can do here.
@@ -12,7 +11,6 @@ import {
     BelongsToManySetAssociationsMixin,
     DataTypes,
 } from 'sequelize';
-R;
 import { Application } from '../declarations';
 import appGet from '../util/appGet';
 import { asArray, defaultSort } from '../util/array';
@@ -104,13 +102,13 @@ export const computeUserRoles = (
     // profilesOverride?: { roles: string | Roles[] | undefined }[]
 ): Roles[] => {
     const thisRoles = User.prototype.getRoles.call(user);
-    return R.pipe(
+    return pipe(
         user.profiles,
         asArray,
-        R.map((it) => Profile.prototype.getRoles.call(it)),
-        R.flatten(),
-        R.concat(thisRoles),
-        R.uniq(),
+        map((it) => Profile.prototype.getRoles.call(it)),
+        flatten(),
+        concat(thisRoles),
+        uniq(),
         defaultSort
     );
 };

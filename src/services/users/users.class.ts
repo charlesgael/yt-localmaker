@@ -1,5 +1,6 @@
 import { SequelizeServiceOptions } from 'feathers-sequelize';
-import * as R from 'remeda';
+
+import { pipe, difference, map } from 'remeda';
 import { Op } from 'sequelize';
 import { Application } from '../../declarations';
 import { Profile } from '../../models/profiles.model';
@@ -50,12 +51,12 @@ export class Users extends SequelizeParamCRUDService<Users.Data>() {
 
             // To create
             UsersProfiles.bulkCreate(
-                R.pipe(
+                pipe(
                     validProfileIds,
                     // Only select non existing entries
-                    R.difference(myProfileIds),
+                    difference(myProfileIds),
                     // into data for UserProfiles
-                    R.map((ProfileId) => ({
+                    map((ProfileId) => ({
                         UserId: data.id,
                         ProfileId,
                     }))
@@ -83,7 +84,7 @@ export namespace Users {
             Data,
             {
                 profiles?: Profiles.Result[];
-                roles?: Roles[];
+                roles: Roles[];
             }
         > {}
 }

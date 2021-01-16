@@ -1,5 +1,4 @@
 import app from '../../app';
-import { Users } from '../../services/users/users.class';
 import Roles from '../../util/enums/roles.enum';
 import { asUser, internal } from '../__util__/authentication';
 import testDomain, { TestDomainCreator } from '../__util__/testDomainCreator.class';
@@ -13,7 +12,7 @@ describe('services.users', () => {
         expect(service).toBeTruthy();
     });
 
-    describe('service testing', () => {
+    describe('users service testing', () => {
         let tdc: TestDomainCreator;
         let admin: any, moderator: any, user: any;
         let profile1: any, profile2: any, profileAdmin: any;
@@ -53,7 +52,7 @@ describe('services.users', () => {
             );
         });
 
-        describe('find method', () => {
+        describe('users find method', () => {
             it('shows the list of user to the user with UserDisplay role', async () => {
                 const list = await service.find(asUser(admin));
 
@@ -70,7 +69,7 @@ describe('services.users', () => {
             });
         });
 
-        describe('get method', () => {
+        describe('users get method', () => {
             it('shows whatever user to the user with UserDisplay role', async () => {
                 const show1 = await service.get(admin.id, asUser(admin));
                 const show2 = await service.get(user.id, asUser(admin));
@@ -130,7 +129,7 @@ describe('services.users', () => {
             });
         });
 
-        describe('create method', () => {
+        describe('users create method', () => {
             it('creates a user if the user has the UserCreate role', async () => {
                 const res = await service.create(
                     {
@@ -156,7 +155,7 @@ describe('services.users', () => {
             });
         });
 
-        describe('update methods', () => {
+        describe('users update methods', () => {
             it('updates self without needing role', async () => {
                 const oldAdminName = admin.name;
                 await service.patch(admin.id, { name: 'admin' }, asUser(admin));
@@ -199,7 +198,7 @@ describe('services.users', () => {
             });
         });
 
-        describe('changing roles', () => {
+        describe('users changing roles', () => {
             const newRoles = [Roles.UserDisplay, Roles.AssignRole];
             let tmpUser: any;
 
@@ -260,7 +259,7 @@ describe('services.users', () => {
             });
         });
 
-        describe('creating with profiles', () => {
+        describe('users creating with profiles', () => {
             it('creates a user with said profiles id the user has the UserAssignProfile role', async () => {
                 await service.create(
                     {
@@ -273,7 +272,7 @@ describe('services.users', () => {
             });
         });
 
-        describe('changing profiles', () => {
+        describe('users changing profiles', () => {
             let tmpUser: any;
 
             beforeEach(async () => {

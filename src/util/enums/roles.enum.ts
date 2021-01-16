@@ -1,7 +1,8 @@
 import { Forbidden } from '@feathersjs/errors';
 import { hasRole } from 'feathers-auth-roles-hooks';
-import { alterItems, iffElse, isProvider, preventChanges, unless } from 'feathers-hooks-common';
+import { alterItems, iffElse } from 'feathers-hooks-common';
 import { HookContext } from '../../declarations';
+import { preventData } from '../../hooks/preventData';
 
 enum Roles {
     AssignProfile = 'AssignProfile',
@@ -39,7 +40,7 @@ function validateRoleList(
 /** Check we don't give more roles than we have */
 function rolesConsistency(givenRoles: Roles[], userRoles: Roles[]) {
     if (!givenRoles.every((role) => userRoles.includes(role))) {
-        throw new Forbidden(new Error('Roles consistency. (giving more roles than you have)'));
+        throw new Forbidden(new Error('Roles consistency. (u.roles)'));
     }
 }
 
@@ -62,7 +63,7 @@ const protectRoles = iffElse(
         if (roles === null) data.roles = null;
         else data.roles = roles?.join('\n');
     }),
-    preventChanges(true, 'roles')
+    preventData(true, 'roles')
 );
 
 export const hooks = {

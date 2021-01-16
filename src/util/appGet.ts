@@ -40,6 +40,7 @@ const appGet = (app: Application): IMappingTypes & IDoers =>
             get(target, name: string) {
                 if (Object.keys(mapping).includes(name)) {
                     return target.app.get(mapping[name as keyof IMapping]) as unknown;
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 } else if (Doers.prototype[name as keyof IDoers]) {
                     const doers = new Doers(target.app);
                     return doers[name as keyof IDoers].bind(doers);

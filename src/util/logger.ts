@@ -14,7 +14,8 @@ const devConfig = (): LoggerOptions => {
 
     const symbols = [Symbol.for('splat'), Symbol.for('message'), Symbol.for('level')];
 
-    const myFormat = printf(({ level, message, timestamp, metadata, ...rest }) => {
+    const myFormat = printf(({ level, message, timestamp, ...rest }) => {
+        delete rest['metadata'];
         (symbols as any[]).forEach((it) => delete rest[it]);
 
         return `${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss.SSS')}  [${level}]${message}${purify(rest)}`;

@@ -12,7 +12,7 @@ export const include = (...entries: any[]): Hook => (context) => {
     } else if (context.type === 'after') {
         dehydrate().call(context.service, context);
     } else {
-        throw new GeneralError(new Error('Not supposed to use this hook as error hook'));
+        throw new GeneralError(new Error('Not supposed to use this hook as error hook. (h.sequelize'));
     }
 };
 
