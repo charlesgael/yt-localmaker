@@ -1,7 +1,8 @@
+import * as R from 'remeda';
+
 // See http://docs.sequelizejs.com/en/latest/docs/models-definition/
 // And https://sequelize.org/master/manual/typescript.html
 // for more of what you can do here.
-
 import {
     Association,
     BelongsToManyAddAssociationMixin,
@@ -11,9 +12,10 @@ import {
     BelongsToManySetAssociationsMixin,
     DataTypes,
 } from 'sequelize';
+R;
 import { Application } from '../declarations';
 import appGet from '../util/appGet';
-import { objOrArrayObj } from '../util/array';
+import { asArray, defaultSort } from '../util/array';
 import RoleModel from '../util/class/RoleModel';
 import Roles from '../util/enums/roles.enum';
 import { Profile } from './profiles.model';
@@ -25,10 +27,9 @@ interface UserAttributes {
     password: string;
 
     email?: string;
-    roles?: string;
 }
 
-export interface UserCreationAttributes extends Omit<UserAttributes, 'id'> {}
+interface UserCreationAttributes extends Omit<UserAttributes, 'id'> {}
 
 export class User extends RoleModel<UserAttributes, UserCreationAttributes> implements UserAttributes {
     id!: number;
@@ -103,22 +104,13 @@ export const computeUserRoles = (
     // profilesOverride?: { roles: string | Roles[] | undefined }[]
 ): Roles[] => {
     const thisRoles = User.prototype.getRoles.call(user);
-    // if (profilesOverride) {
-    //     return Array.prototype.concat
-    //         .apply<string[], string[][], Roles[]>(
-    //             thisRoles,
-    //             profilesOverride.map((it) => {
-    //                 if (Array.isArray(it.roles)) return it.roles;
-    //                 return Profile.prototype.getRoles.call(it);
-    //             })
-    //         )
-    //         .filter((it, idx, arr) => arr.indexOf(it) === idx) // no duplicates
-    //         .sort();
-    // }
-    const profilesRoles =
-        objOrArrayObj(user.profiles)?.map((it) => Profile.prototype.getRoles.call(it)) || [];
-    return Array.prototype.concat
-        .apply<string[], string[][], Roles[]>(thisRoles, profilesRoles)
-        .filter((it, idx, arr) => arr.indexOf(it) === idx) // no duplicates
-        .sort();
+    return R.pipe(
+        user.profiles,
+        asArray,
+        R.map((it) => Profile.prototype.getRoles.call(it)),
+        R.flatten(),
+        R.concat(thisRoles),
+        R.uniq(),
+        defaultSort
+    );
 };

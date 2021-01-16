@@ -1,5 +1,8 @@
-export function objOrArrayObj<T extends string | number | boolean | Record<string, any>>(
-    o: T | T[] | undefined
-): T[] | undefined {
-    return o === undefined || Array.isArray(o) ? o : [o];
+export function asArray<T extends any>(o: T | T[] | undefined): T[] {
+    if (o) return Array.prototype.concat(o);
+    return [];
+}
+
+export function defaultSort<T>(o: T[]): T[] {
+    return o.sort();
 }

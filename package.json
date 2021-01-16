@@ -58,8 +58,8 @@
     "feathers-hooks-common": "^5.0.4",
     "feathers-sequelize": "^6.2.0",
     "helmet": "^4.2.0",
-    "lodash": "^4.17.20",
     "mysql2": "^2.2.5",
+    "remeda": "^0.0.27",
     "sequelize": "^6.3.5",
     "serve-favicon": "^2.5.0",
     "winston": "^3.3.3"
@@ -72,7 +72,6 @@
     "@types/helmet": "^4.0.0",
     "@types/jest": "^26.0.20",
     "@types/jsonwebtoken": "^8.5.0",
-    "@types/lodash": "^4.14.167",
     "@types/serve-favicon": "^2.5.1",
     "@types/validator": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^4.8.2",

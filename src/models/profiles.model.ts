@@ -10,7 +10,7 @@ interface ProfileAttributes {
     roles?: string;
 }
 
-export interface ProfileCreationAttributes extends Omit<ProfileAttributes, 'id'> {}
+interface ProfileCreationAttributes extends Omit<ProfileAttributes, 'id'> {}
 
 export class Profile
     extends RoleModel<ProfileAttributes, ProfileCreationAttributes>

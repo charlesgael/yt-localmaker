@@ -12,8 +12,8 @@ export class Me extends UnimplementedService<any> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async find({ user }: Params & { user?: { id: number } } = {}) {
-        if (user) return this.app.services.users.get(user.id);
+    async find(params: Params & { user?: { id?: number } } = {}) {
+        if (params.user && params.user.id) return this.app.services.users.get(params.user.id, params);
         throw new NotAuthenticated(new Error('Not authenticated'));
     }
 }

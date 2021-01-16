@@ -1,5 +1,5 @@
 import app from '../../app';
-import { UserServiceData } from '../../services/users/users.class';
+import { Users } from '../../services/users/users.class';
 import Roles from '../../util/enums/roles.enum';
 import { asUser, internal } from '../__util__/authentication';
 import testDomain, { TestDomainCreator } from '../__util__/testDomainCreator.class';
@@ -31,8 +31,8 @@ describe('services.users', () => {
                         Roles.UserCreate,
                         Roles.UserUpdate,
                         Roles.UserDisplay,
-                        Roles.UserAssignRole,
-                        Roles.UserAssignProfile,
+                        Roles.AssignRole,
+                        Roles.AssignProfile,
                     ]
                         // Using string with separator
                         .join('\n'),
@@ -58,14 +58,14 @@ describe('services.users', () => {
                 const list = await service.find(asUser(admin));
 
                 expect(list).toBeTruthy();
-                if (Array.isArray(list)) return fail(); // Paginated
+                if (Array.isArray(list)) return fail('Service response was not paginated'); // Paginated
                 expect(list.total).toBeGreaterThanOrEqual(3);
             });
 
             it('hides the list from the user without UserDisplay role', async () => {
                 try {
                     await service.find(asUser(user));
-                    fail();
+                    fail('Service could be called without UserDisplay role');
                 } catch (e) {}
             });
         });
@@ -86,7 +86,7 @@ describe('services.users', () => {
 
                 try {
                     await service.get(admin.id, asUser(user));
-                    fail();
+                    fail('Service could be called without UserDisplay role');
                 } catch (e) {}
             });
 
@@ -116,7 +116,7 @@ describe('services.users', () => {
                         provider: 'rest',
                         user: (null as any) as undefined,
                     });
-                    fail();
+                    fail('No user got through');
                 } catch (e) {}
 
                 try {
@@ -125,7 +125,7 @@ describe('services.users', () => {
                         provider: 'rest',
                         user: {},
                     });
-                    fail();
+                    fail('Fake user got through');
                 } catch (e) {}
             });
         });
@@ -175,7 +175,7 @@ describe('services.users', () => {
                 const oldModeratorName = moderator.name;
                 try {
                     await service.patch(moderator.id, { name: 'moderator' }, asUser(user));
-                    fail();
+                    fail('Different user could be updated without UserUpdate role');
                 } catch (error) {}
 
                 await service.patch(moderator.id, { name: 'moderator' }, asUser(admin));
@@ -183,10 +183,24 @@ describe('services.users', () => {
                 expect(moderator).toBeTruthy();
                 expect(moderator.name).not.toBe(oldModeratorName);
             });
+
+            it('prevents updating a user with more roles than you', async () => {
+                try {
+                    await service.patch(admin.id, { name: 'moderator' }, asUser(moderator));
+                    fail('More granted could be updated');
+                } catch (e) {}
+
+                const tmp = await tdc.mkUser({ roles: allRoles });
+
+                try {
+                    await service.remove(tmp.id, asUser(moderator));
+                    fail('More granted could be removed');
+                } catch (e) {}
+            });
         });
 
         describe('changing roles', () => {
-            const newRoles = [Roles.UserDisplay, Roles.UserAssignRole];
+            const newRoles = [Roles.UserDisplay, Roles.AssignRole];
             let tmpUser: any;
 
             beforeEach(async () => {
@@ -207,16 +221,16 @@ describe('services.users', () => {
             });
 
             it("prevents user from giving roles he doesn't have", async () => {
-                await service.patch(
-                    tmpUser.id,
-                    {
-                        roles: allRoles,
-                    },
-                    asUser(moderator)
-                );
-                tmpUser = await service.get(tmpUser.id, internal);
-                expect(tmpUser).toBeTruthy();
-                expect(tmpUser.roles).toStrictEqual(moderator.roles);
+                try {
+                    await service.patch(
+                        tmpUser.id,
+                        {
+                            roles: allRoles,
+                        },
+                        asUser(moderator)
+                    );
+                    fail('Giving more roles');
+                } catch (error) {}
             });
 
             it('changes the roles if the user gives all invalid roles', async () => {
@@ -233,16 +247,16 @@ describe('services.users', () => {
             });
 
             it('fails otherwise', async () => {
-                await service.patch(
-                    user.id,
-                    {
-                        roles: newRoles,
-                    },
-                    asUser(user)
-                );
-                tmpUser = await service.get(user.id, internal);
-                expect(tmpUser).toBeTruthy();
-                expect(tmpUser.roles).toStrictEqual([]);
+                try {
+                    await service.patch(
+                        user.id,
+                        {
+                            roles: newRoles,
+                        },
+                        asUser(user)
+                    );
+                    fail('Giving roles without UserAssignRole');
+                } catch (e) {}
             });
         });
 
@@ -331,25 +345,37 @@ describe('services.users', () => {
                     profile2.id,
                 ]);
 
-                await service.patch(
-                    tmpUser.id,
-                    {
-                        profiles: [profileAdmin.id],
-                    },
-                    asUser(moderator)
-                );
+                try {
+                    await service.patch(
+                        tmpUser.id,
+                        {
+                            profiles: [profileAdmin.id],
+                        },
+                        asUser(moderator)
+                    );
+                    fail('Could give profile with more roles');
+                } catch (error) {}
+
+                // test no changes
                 tmpUser = await service.get(tmpUser.id, internal);
                 expect(tmpUser).toBeTruthy();
-                expect(tmpUser.roles).toStrictEqual([]);
-                expect(tmpUser.profiles.map((it: { id: any }) => it.id)).toStrictEqual([]);
+                expect(tmpUser.roles).toStrictEqual([Roles.UserDisplay, Roles.UserUpdate]);
+                expect(tmpUser.profiles.map((it: { id: any }) => it.id)).toStrictEqual([
+                    profile1.id,
+                    profile2.id,
+                ]);
 
-                await service.patch(
-                    tmpUser.id,
-                    {
-                        profiles: [profile1.id, profile2.id, profileAdmin.id],
-                    },
-                    asUser(moderator)
-                );
+                try {
+                    await service.patch(
+                        tmpUser.id,
+                        {
+                            profiles: [profile1.id, profile2.id, profileAdmin.id],
+                        },
+                        asUser(moderator)
+                    );
+                } catch (error) {}
+
+                // test no changes
                 tmpUser = await service.get(tmpUser.id, internal);
                 expect(tmpUser).toBeTruthy();
                 expect(tmpUser.roles).toStrictEqual([Roles.UserDisplay, Roles.UserUpdate]);
@@ -375,6 +401,19 @@ describe('services.users', () => {
                     profile2.id,
                     profileAdmin.id,
                 ]);
+            });
+
+            it('cannot affect profiles without designed role', async () => {
+                try {
+                    await service.patch(
+                        user.id,
+                        {
+                            profiles: [profile1.id],
+                        },
+                        asUser(user)
+                    );
+                    fail('Could give profile at all');
+                } catch (e) {}
             });
         });
     });

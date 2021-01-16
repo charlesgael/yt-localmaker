@@ -1,6 +1,6 @@
 import { Application } from '../../declarations';
-import { ProfileServiceData } from '../../services/profiles/profiles.class';
-import { UserServiceData } from '../../services/users/users.class';
+import { Profiles } from '../../services/profiles/profiles.class';
+import { Users } from '../../services/users/users.class';
 import randomName from './names';
 import { initSequelize } from './sequelize';
 
@@ -17,32 +17,34 @@ export class TestDomainCreator {
         this.app = app;
     }
 
-    mkUser(pUser: Partial<UserServiceData> = {}) {
-        const user = <UserServiceData>{
+    mkUser(pUser: Partial<Users.Data> = {}) {
+        const user = <Users.Data>{
             ...pUser,
             name: pUser.name || randomName(),
             password: pUser.password || 'qwerty',
         };
 
-        return this.app.services.users.create(user, { authenticated: true }) as Promise<UserServiceData>;
+        return (this.app.services.users.create(user, {
+            authenticated: true,
+        }) as any) as Promise<Users.Result>;
     }
 
-    mkUsers(...pUsers: Partial<UserServiceData>[]) {
+    mkUsers(...pUsers: Partial<Users.Data>[]) {
         return Promise.all(pUsers.map((pUser) => this.mkUser(pUser)));
     }
 
-    mkProfile(pProfile: Partial<ProfileServiceData> = {}) {
-        const profile: Optional<ProfileServiceData, 'id'> = {
+    mkProfile(pProfile: Partial<Profiles.Data> = {}) {
+        const profile: Optional<Profiles.Data, 'id'> = {
             ...pProfile,
-            name: randomName(),
+            name: pProfile.name || randomName(),
         };
 
-        return this.app.services.profiles.create(profile, {
+        return (this.app.services.profiles.create(profile, {
             authenticated: true,
-        }) as Promise<ProfileServiceData>;
+        }) as any) as Promise<Profiles.Result>;
     }
 
-    mkProfiles(...pProfiles: Partial<ProfileServiceData>[]) {
+    mkProfiles(...pProfiles: Partial<Profiles.Data>[]) {
         return Promise.all(pProfiles.map((pProfile) => this.mkProfile(pProfile)));
     }
 }

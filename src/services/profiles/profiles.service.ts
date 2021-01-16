@@ -1,8 +1,8 @@
 // Initializes the `profils` service on path `/profils`
-import { Profiles } from './profiles.class';
-import createModel from '../../models/profiles.model';
-import hooks from './profiles.hooks';
 import { Application } from '../../declarations';
+import createModel from '../../models/profiles.model';
+import { Profiles } from './profiles.class';
+import hooks from './profiles.hooks';
 
 export default function (app: Application): void {
     const options = {

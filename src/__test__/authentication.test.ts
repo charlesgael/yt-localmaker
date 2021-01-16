@@ -65,7 +65,7 @@ describe('services.authentication', () => {
         it("doesn't let pass unknown users", async () => {
             try {
                 await app.services.me.find(asUser(999));
-                fail();
+                fail('Unknown user got through');
             } catch (e) {}
         });
     });

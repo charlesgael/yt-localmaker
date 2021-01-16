@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-types */
+
+import * as R from 'remeda';
+
 import { Params } from '@feathersjs/feathers';
-import _ from 'lodash';
 import logger from '../logger';
 
 type Hook<T> = <V>(value: V, result: T, params: Params) => V;
@@ -69,18 +71,18 @@ export default function DataReactorMixin<T extends {} = {}>() {
             private _holdData(data: Partial<T>, method: 'create' | 'patch'): Partial<T>;
             private _holdData(data: T, method: 'update'): T;
             private _holdData(data: T | Partial<T>, method: 'create' | 'update' | 'patch'): T | Partial<T> {
-                const alteredData = _.omit<T | Partial<T>>(
+                return R.omit(
                     data,
-                    Object.keys(this.reactors).filter((key) => {
-                        return (
+                    Object.keys(this.reactors).filter(
+                        (key) =>
+                            // At least one reactor (non specific)
                             this.reactors[key] &&
+                            // There is no order to keep the property
                             !this.reactors[key].keepProperty &&
+                            // Reactor is for this method or global one
                             (this.reactors[key].all || this.reactors[key][method])
-                        );
-                    })
-                );
-
-                return alteredData;
+                    ) as []
+                ) as T;
             }
 
             async _callCreateHook(
@@ -104,10 +106,6 @@ export default function DataReactorMixin<T extends {} = {}>() {
                     logger.warn('DataReactorService._callCreateHook asked multiple created one');
                     return results;
                 }
-
-                Object.keys(this.reactors).filter(
-                    (key) => this.reactors[key] && (this.reactors[key].all || this.reactors[key]['create'])
-                );
 
                 return await this._callHook(data, results, params, 'create');
             }

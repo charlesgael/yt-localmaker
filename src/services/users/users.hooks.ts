@@ -1,41 +1,46 @@
 import { hooks as localHooks } from '@feathersjs/authentication-local';
+import { Forbidden } from '@feathersjs/errors';
 import { HooksObject } from '@feathersjs/feathers';
 import { hasRole, reqRole } from 'feathers-auth-roles-hooks';
-import { alterItems, discard, iff, iffElse, isProvider, unless } from 'feathers-hooks-common';
-import _ from 'lodash';
-import { HookContext } from '../../declarations';
+import { alterItems, discard, iffElse, isProvider, preventChanges, unless } from 'feathers-hooks-common';
+import * as R from 'remeda';
+import { Hook, HookContext } from '../../declarations';
 import { authentication, withCurrentUser } from '../../hooks/authentication';
 import { include } from '../../hooks/sequelize';
 import { Profile } from '../../models/profiles.model';
-import { computeUserRoles, User } from '../../models/users.model';
-import Roles, { hooks as RolesHooks } from '../../util/enums/roles.enum';
-import { ProfileServiceData } from '../profiles/profiles.class';
+import { computeUserRoles } from '../../models/users.model';
+import Roles, { hooks as rolesHooks, util as rolesUtil } from '../../util/enums/roles.enum';
+import { Profiles } from '../profiles/profiles.class';
+import { Users } from './users.class';
 
 // Don't remove this comment. It's needed to format import lines nicely.
 
 const { hashPassword, protect } = localHooks;
 
-/** Will prepare roles in request to be valid string with correct separator */
-const validateRoles = iffElse(
-    hasRole(Roles.UserAssignRole),
-    alterItems((data, context) => {
-        const value: string | string[] | null | undefined = data.roles;
-        data.roles = RolesHooks.validateRoleList(
-            value,
-            context.params.user !== undefined ? context.params.roles || [] : undefined
-        );
-    }),
-    discard('roles')
-);
+const protectStrongerUser: Hook = async (context) => {
+    if (context.params.provider && context.id && context.id !== context.params.user?.id) {
+        const modifyeeRoles = ((await context.app.services.users.get(context.id)) as Users.Result).roles;
+        const editorRoles = context.params.roles || [];
+
+        try {
+            rolesUtil.rolesConsistency(modifyeeRoles || [], editorRoles);
+        } catch (e) {
+            throw new Forbidden(new Error('Cannot edit user with more roles than you.'));
+        }
+    }
+};
 
 const validateProfiles = iffElse(
-    hasRole(Roles.UserAssignProfile),
+    hasRole(Roles.AssignProfile),
     unless(
         isProvider('server'),
-        alterItems(async (data, context: HookContext) => {
-            const value: string | number[] | null | undefined = data.profiles;
-            if (value !== undefined && value !== null) {
-                const ids = typeof value === 'string' ? value.split(',').map((it: string) => +it) : value;
+        alterItems(async (data: Users.Data, context: HookContext) => {
+            if (data.profiles !== undefined && data.profiles !== null) {
+                // Input validation and get roles
+                const ids =
+                    typeof data.profiles === 'string'
+                        ? data.profiles.split(',').map((it: string) => +it)
+                        : data.profiles;
                 const profiles = (await context.app.services.profiles.find({
                     query: {
                         id: {
@@ -44,24 +49,20 @@ const validateProfiles = iffElse(
                     },
                     paginate: false,
                     authenticated: true,
-                })) as ProfileServiceData[];
+                })) as Profiles.Result[];
 
-                data.profiles = profiles
-                    // Remove profiles having more roles than us
-                    .filter(
-                        (profile) =>
-                            _.difference(
-                                // Profile role
-                                Profile.prototype.getRoles.call(profile),
-                                // - Our roles
-                                context.params.roles || []
-                            ).length === 0
-                    )
-                    .map((profile) => profile.id);
+                rolesUtil.rolesConsistency(
+                    R.pipe(
+                        profiles,
+                        R.map((it) => it.roles || []),
+                        R.flatten()
+                    ),
+                    context.params.roles || []
+                );
             }
         })
     ),
-    discard('profiles')
+    preventChanges(true, 'profiles')
 );
 
 const associations = include('profiles');
@@ -74,7 +75,6 @@ export default <HooksObject>{
             reqRole(Roles.UserDisplay),
         ],
         get: [
-            // associations,
             // Prevent from seeing other
             unless(hasRole(Roles.UserDisplay), withCurrentUser('id')),
         ],
@@ -82,7 +82,7 @@ export default <HooksObject>{
             hashPassword('password'),
             reqRole(Roles.UserCreate),
             // Validate role requiring parts
-            validateRoles,
+            rolesHooks.protectRoles,
             validateProfiles,
             discard('id'),
         ],
@@ -90,8 +90,10 @@ export default <HooksObject>{
             hashPassword('password'),
             // Prevent from updating other
             unless(hasRole(Roles.UserUpdate), withCurrentUser('id')),
+            // Prevent from updating more granted
+            protectStrongerUser,
             // Validate role requiring parts
-            validateRoles,
+            rolesHooks.protectRoles,
             validateProfiles,
             discard('id'),
         ],
@@ -99,14 +101,18 @@ export default <HooksObject>{
             hashPassword('password'),
             // Prevent from updating other
             unless(hasRole(Roles.UserUpdate), withCurrentUser('id')),
+            // Prevent from updating more granted
+            protectStrongerUser,
             // Validate role requiring parts
-            validateRoles,
+            rolesHooks.protectRoles,
             validateProfiles,
             discard('id'),
         ],
         remove: [
             // Prevent from deleting other
             unless(hasRole(Roles.UserUpdate), withCurrentUser('id')),
+            // Prevent from deleting more granted
+            protectStrongerUser,
         ],
     },
 
@@ -120,12 +126,12 @@ export default <HooksObject>{
             // Remove profiles if user can't see them (pretty print otherwise)
             iffElse(
                 hasRole(Roles.ProfileDisplay),
-                alterItems((rec: User) =>
-                    rec.profiles?.forEach((it: any) => {
+                alterItems((rec: Users.Result) =>
+                    rec.profiles?.forEach((it) => {
                         it.roles = Profile.prototype.getRoles.call(it);
                     })
                 ),
-                alterItems((rec) => delete rec.profiles)
+                protect('profiles')
             ),
             // Make sure the password field is never sent to the client
             // Always must be the last hook

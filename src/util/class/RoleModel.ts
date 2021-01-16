@@ -1,4 +1,4 @@
-import Roles, { hooks as rolesHooks } from '../enums/roles.enum';
+import Roles from '../enums/roles.enum';
 import Model from './Model';
 
 /* eslint-disable @typescript-eslint/ban-types */
@@ -10,15 +10,12 @@ export default abstract class RoleModel<
 
     roles?: string;
 
-    getRoles(this: { roles?: string | string[] | null }): Roles[] {
-        const roles = (typeof this.roles === 'string'
-            ? this.roles.split(RoleModel.ROLES_SEPARATOR)
-            : this.roles
-        )?.sort();
-        return (roles || []) as Roles[];
-    }
+    getRoles(this: { roles?: string | string[] | null }, sort = true): Roles[] {
+        const roles =
+            (typeof this.roles === 'string' ? this.roles.split(RoleModel.ROLES_SEPARATOR) : this.roles) || [];
 
-    setRoles(newRoles: string | string[]): void {
-        this.roles = rolesHooks.validateRoleList(newRoles) || undefined;
+        if (sort) roles.sort();
+
+        return roles as Roles[];
     }
 }

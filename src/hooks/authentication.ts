@@ -3,6 +3,7 @@ import { auth } from 'feathers-auth-roles-hooks';
 import { setField } from 'feathers-authentication-hooks';
 import { HookContext } from '../declarations';
 import { computeUserRoles } from '../models/users.model';
+import { Users } from '../services/users/users.class';
 import logger from '../util/logger';
 
 export const authentication = auth(
@@ -24,16 +25,17 @@ export const authentication = auth(
             }
 
             try {
-                const freshUser = await context.app.services.users.find({
+                // Extra typing to ensure correct code
+                const freshUser = (await (context as HookContext).app.services.users.find({
                     query: {
                         $limit: 1,
                         id: userObj.id,
                     },
                     authenticated: true,
                     paginate: false,
-                });
+                })) as Users.Result[];
 
-                if (Array.isArray(freshUser) && freshUser.length) {
+                if (freshUser.length) {
                     const roles = (freshUser[0].roles as any) as string[];
                     return roles;
                 }

@@ -1,6 +1,6 @@
 import { Application } from '../declarations';
 import { Profile } from '../models/profiles.model';
-import { UserServiceData } from '../services/users/users.class';
+import { Users } from '../services/users/users.class';
 import Roles from '../util/enums/roles.enum';
 import logger from '../util/logger';
 
@@ -24,7 +24,7 @@ async function execute(app: Application): Promise<void> {
             profiles: [adminProfile.id],
         },
         { authenticated: true }
-    )) as UserServiceData;
+    )) as Users.Result;
     logger.info('Created admin', admin);
 
     //     logger.info('admin', admin);

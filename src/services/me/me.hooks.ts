@@ -1,19 +1,14 @@
+import { hooks as localHooks } from '@feathersjs/authentication-local';
 import { HooksObject } from '@feathersjs/feathers';
-import { alterItems } from 'feathers-hooks-common';
 import { authentication } from '../../hooks/authentication';
+
+const { protect } = localHooks;
 
 export default <HooksObject>{
     before: {
         all: [authentication],
     },
 
-    after: {
-        all: [
-            alterItems((rec) => {
-                delete rec.profiles;
-                delete rec.password;
-            }),
-        ],
-    },
+    after: {},
     error: {},
 };

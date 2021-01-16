@@ -44,11 +44,11 @@ describe('services.me', () => {
         it('thows error when called by no user', async () => {
             try {
                 await app.services.me.find({ authenticated: true });
-                fail();
+                fail('Service could be called by no user');
             } catch (error) {}
             try {
                 await app.services.me.find();
-                fail();
+                fail('Service could be called unauthentified');
             } catch (error) {}
         });
     });
@@ -57,31 +57,31 @@ describe('services.me', () => {
         it("doesn't answer on get", async () => {
             try {
                 await app.services.me.get(1);
-                fail();
+                fail('Service could be called with get');
             } catch (e) {}
         });
         it("doesn't answer on create", async () => {
             try {
                 await app.services.me.create({});
-                fail();
+                fail('Service could be called with create');
             } catch (e) {}
         });
         it("doesn't answer on update", async () => {
             try {
                 await app.services.me.update(1, {});
-                fail();
+                fail('Service could be called with update');
             } catch (e) {}
         });
         it("doesn't answer on patch", async () => {
             try {
                 await app.services.me.patch(1, {});
-                fail();
+                fail('Service could be called with patch');
             } catch (e) {}
         });
         it("doesn't answer on remove", async () => {
             try {
                 await app.services.me.remove(1);
-                fail();
+                fail('Service could be called with remove');
             } catch (e) {}
         });
     });
